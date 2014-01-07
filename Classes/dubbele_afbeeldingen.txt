@@ -1,0 +1,67 @@
+# in Mysql
+
+select idno, value_longtext1 from ca_objects obj
+inner join ca_attributes as attr
+on obj.object_id = attr.row_id and attr.table_num = 57
+inner join ca_attribute_values as val
+on attr.attribute_id = val.attribute_id and val.element_id = 202
+
+# in Digitool
+
+select * from hdecontrol where partitionc = 'CRKC,standaardcollectie' and usagetype = 'ARCHIVE'
+
+# Resultaat : twee bestanden --> linken op gemeenschappelijke info
+
+# Mysql: 		Pidca_objects.csv
+# Digitool:	export.dsv
+
+# Beide bestanden met unix-commando's in Cygwin bestoken, om ze te linken
+# We dienen voor beide bestanden een sleutel te maken bestaande uit pid+label
+
+# Pidca_objects.csv
+###################
+# kolom 1 : idno --> hieruit halen we de label
+cut -f1 Pidca_objects.csv | sed 's/\(.*\) - .*$/\1/' | sed 's/\(.*\..*\)\.\(.*\)/\1_\2/' | sed 's/\(^.*\)?$/\1/' | sed 's/\(^.*\)(?)$/\1/'> f1.csv
+
+# kolom 2 : url --> hieruit halen we de pid
+cut -f2 Pidca_objects.csv | sed 's/\(.......\).*$/\1/' > f2.csv
+
+# voegen f1 en f2 samen tot unieke sleutel: pid+' '+label
+paste -d' ' f2.csv f1.csv > f-mysql.csv
+
+# sorteren en kijken of er geen dubbels zijn
+sort f-mysql.csv | uniq > f-mysql-uniq.csv
+sort f-mysql.csv | uniq -d > f-dubbels.csv
+
+# export.csv
+############
+# kolom 1 : label --> label
+cut -f1 export.csv | sed 's/^\(.*_.*\)_.*$/\1/' | sed 's/^\(.*_.*\)[-_].*$/\1/' | sed 's/^\(.*_.*\)_.*$/\1/' > t1.csv
+
+# kolom 2 : pid
+cut -f2 export.csv | sed 's/^M//' > t2.csv
+
+# voegen t1 en t2 samen tot 'zelfde' unieke sleutel: pid+' '+label
+paste -d' ' t2.csv t1.csv > f-digitool.csv
+# (opgelet: ^M -> ctrl+v,ctrl+m )
+
+# sorteren en kijken of er geen dubbels zijn
+sort f-digitool.csv | uniq > f-digitool-uniq.csv
+
+# we voegen beide bestanden samen, met 'EMPTY' bij geen match
+join -t'      ' -a1 -11 -21 -o1.1,2.1 -e'EMPTY' f-digitool-uniq.csv f-mysql-uniq.csv > f-total.csv
+# (opgelet: [TAB] -> ctrl+v,[tab] )
+
+
+# f-total
+#########
+# Uit dit bestand kunnen we de pids halen die NIET in gebruik zijn in CA
+# twee kolommen: pid/label in digitool, pid/labem in mysql (EMPTY indien niet aanwezig):
+
+# NIET in gebruik => kolom 2 bevat EMTPY
+
+grep EMPTY f-total.csv > f-delete.csv
+grep -v EMPTY f-total.csv > f-rest.csv
+
+# kolom 1 van f-delete is al wat we nodig hebben om objecten in Digitool te wissen
+cut -f1 -d' ' f-delete.csv > PidsToDelete.csv
