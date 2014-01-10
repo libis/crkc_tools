@@ -1,3 +1,6 @@
+REDENERING IS NIET JUIST
+
+
 # in Mysql
 
 select idno, value_longtext1 from ca_objects obj
@@ -5,6 +8,7 @@ inner join ca_attributes as attr
 on obj.object_id = attr.row_id and attr.table_num = 57
 inner join ca_attribute_values as val
 on attr.attribute_id = val.attribute_id and val.element_id = 202
+where deleted = 0
 
 # in Digitool
 
