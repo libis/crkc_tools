@@ -51,7 +51,7 @@ $log->logInfo('Einde verwerking');
 
 
 function setLogging() {
-    $logDir = readlink(__MY_DIR__."/crkc_tools/log/");
+    $logDir = __MY_DIR__."/crkc_tools-staging/shared/log/";
     $log = new KLogger($logDir, KLogger::DEBUG);
 
     return $log;
