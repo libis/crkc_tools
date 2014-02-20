@@ -32,10 +32,12 @@ $matrix = array('20' => array($id => 'entity_id', $tabel => 'ca_entities', $tabe
  */
 //$matrix = array('20' => array($id => 'entity_id', $tabel => 'ca_entities', $tabelnr => '20') );
 //$matrix = array('33' => array($id => 'item_id', $tabel => 'ca_list_items', $tabelnr => '33') );
-$matrix = array('36' => array($id => 'list_id', $tabel => 'ca_lists', $tabelnr => '36') );
+//$matrix = array('36' => array($id => 'list_id', $tabel => 'ca_lists', $tabelnr => '36') );
 //$matrix = array('67' => array($id => 'occurrence_id', $tabel => 'ca_occurrences', $tabelnr => '67') );
 //$matrix = array('72' => array($id => 'place_id', $tabel => 'ca_places', $tabelnr => '72') );
 //$matrix = array('89' => array($id => 'location_id', $tabel => 'ca_storage_locations', $tabelnr => '89') );
+$matrix = array('103' => array($id => 'set_id', $tabel => 'ca_sets', $tabelnr => '103'));
+//$matrix = array('133' => array($id => 'loan_id', $tabel => 'ca_loans', $tabelnr => '133'));
 
 $log->logInfo("De matrix : ", $matrix);
 

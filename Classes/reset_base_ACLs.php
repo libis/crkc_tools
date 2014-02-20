@@ -5,7 +5,7 @@
  * and open the template in the editor.
  */
 
-define("__PROG__","resetBaseACLs");
+define("__PROG__","resetBaseACLs_table20");
 
 include('header.php');
 
@@ -30,8 +30,14 @@ $matrix = array('20' => array($id => 'entity_id', $tabel => 'ca_entities', $tabe
                 );
  *
  */
-$matrix = array('20' => array($id => 'entity_id', $tabel => 'ca_entities', $tabelnr => '20')
-                );
+$matrix = array('20' => array($id => 'entity_id', $tabel => 'ca_entities', $tabelnr => '20'));
+//$matrix = array('33' => array($id => 'item_id', $tabel => 'ca_list_items', $tabelnr => '33'));
+//$matrix = array('36' => array($id => 'list_id', $tabel => 'ca_lists', $tabelnr => '36'));
+//$matrix = array('67' => array($id => 'occurrence_id', $tabel => 'ca_occurrences', $tabelnr => '67'));
+//$matrix = array('72' => array($id => 'place_id', $tabel => 'ca_places', $tabelnr => '72'));
+//$matrix = array('89' => array($id => 'location_id', $tabel => 'ca_storage_locations', $tabelnr => '89'));
+//$matrix = array('103' => array($id => 'set_id', $tabel => 'ca_sets', $tabelnr => '103'));
+//$matrix = array('133' => array($id => 'loan_id', $tabel => 'ca_loans', $tabelnr => '133'));
 
 $log->logInfo("De matrix : ", $matrix);
 
@@ -41,14 +47,17 @@ $verwijderd = 0;
 $d_errors = 0;
 $i_errors = 0;
 $u_errors = 0;
-
+$verwerkt = array();
 //$o_db = new Db();
 
 foreach($matrix as $value) {
 
         $log->logInfo("=========================================================");
+        $i = 1;
+        $table_num = $value[$tabelnr];
+        $element_id = $value[$id];
 
-        $qry1 = "SELECT $value[$id] FROM $value[$tabel] where $value[$id] > 1253 ";
+        $qry1 = "SELECT $value[$id] FROM $value[$tabel]";
         $log->logInfo("QUERY : ", $qry1);
 
         $rs1 = mysql_query($qry1, $con);
@@ -57,37 +66,18 @@ foreach($matrix as $value) {
 
         while($row1 = mysql_fetch_assoc($rs1)) {
 
-            $element = $row1[$value[$id]];
+            $element = $row1[$element_id];
             $log->logInfo("ELEMENT ", $element);
 
-            $qry2 = "SELECT acl_id FROM ca_acl WHERE group_id IS NULL AND user_id IS NULL
-                AND table_num = $value[$tabelnr] AND row_id = $element";
-            $log->logInfo("QUERY : ", $qry2);
+            ####################################################################
+            # STAP 1: Verwijder ALLE bestaande ACL's voor dit element
+            ####################################################################
 
-            $rs2 = mysql_query($qry2, $con);
-
-            $count2 = mysql_num_rows($rs2);
-
-            ##################################################
-            # STAP 1: verwijderen ALLE basisACLs voor element
-            ##################################################
-            if ($count2 > 0) {
-
-                deleteACLs($con, $rs2, $log, $verwijderd, $d_errors);
-            }
-            ##################################################
-            # STAP 2: voegen correcte basisACL in (met read-rechten
-            ##################################################
-            insertACL($con, $tabelnr, $value, $element, $log, $aangemaakt, $i_errors);
-
-            ###################################################
-            # STAP 3: we verwijderen all uitzonderingen met read-rechten
-            ###################################################
-            $qry5 = "SELECT acl_id FROM ca_acl WHERE group_id IS NOT NULL AND user_id IS NULL AND table_num = $value[$tabelnr] AND row_id = $element AND access = 1";
+            $qry5 = "SELECT acl_id FROM ca_acl WHERE table_num = $table_num AND row_id = $element";
             $rs5 = mysql_query($qry5, $con);
             $count5 = mysql_num_rows($rs5);
 
-            $qry6 = "DELETE FROM ca_acl WHERE group_id IS NOT NULL AND user_id IS NULL AND table_num = $value[$tabelnr] AND row_id = $element AND access = 1";
+            $qry6 = "DELETE FROM ca_acl WHERE table_num = $table_num AND row_id = $element";
 
             $rs6 = mysql_query($qry6, $con);
 
@@ -99,19 +89,36 @@ foreach($matrix as $value) {
                 $d_errors = $d_errors + 1;
             }
 
-            /*
-            $count5 = mysql_num_rows($rs5);
+            #####################################################################
+            # STAP 2: voegen correcte basisACL in (met read-rechten voor iedereen
+            #####################################################################
+            //parameters: connectie, user_group, tabelnummer, row_id, access, log, teller, error_teller
+            insertACL($con, 'NULL', $table_num, $element, 1, $log, $aangemaakt, $i_errors);
 
-            if ($count5 > 0) {
+            ####################################################################
+            # STAP 3 : insert ACL's voor de hoofdredacteuren
+            ####################################################################
+            //CRKC hoofdredacteuren
+            insertACL($con,  8, $table_num, $element, 3, $log, $aangemaakt, $i_errors);
+            //POV hoofdredacteuren
+            insertACL($con, 14, $table_num, $element, 3, $log, $aangemaakt, $i_errors);
+            //PA hoofdredacteuren
+            insertACL($con, 20, $table_num, $element, 3, $log, $aangemaakt, $i_errors);
+            //PWV hoofdredacteuren
+            insertACL($con, 26, $table_num, $element, 3, $log, $aangemaakt, $i_errors);
 
-                deleteACLs($con, $rs5, $log, $verwijderd, $d_errors);
+            $i++;
+            $verwerkt[] = $element;
+            
+            if ($i === 10) {
+                break;
             }
-             *
-             */
-
+            
         }
 
         unset($element);
+        unset($table_num);
+        unset($element_id);
 
         $log->logInfo("=========================================================");
         $log->logInfo("verwerking", $value);
@@ -123,14 +130,20 @@ foreach($matrix as $value) {
         $log->logInfo("DELETES : ", $verwijderd);
         $log->logInfo("DELETE_ERRORS : ", $d_errors);
         $log->logInfo("=========================================================");
-
+        $log->logInfo("verwerkte ".$element_id, $verwerkt);
+        $log->logInfo("=========================================================");
+        
         unset($aangemaakt);
         unset($aangepast);
         unset($verwijderd);
         unset($i_errors);
         unset($u_errors);
         unset($d_errors);
+        unset($verwerkt);
 }
+
+$log->logInfo("+++++++++++++++FINISHED++++++++++++++++++++++");
+
 mysql_close($con);
 
 function deleteACLs ($con, $query_res, $log, &$verwijderd, &$d_errors) {
@@ -157,18 +170,18 @@ function deleteACLs ($con, $query_res, $log, &$verwijderd, &$d_errors) {
 }
 
 
+//parameters: connectie, user_group, array uit $matrix, row_id, access, log, teller, error_teller
+function insertACL($con, $group, $table, $element, $access, $log, &$aangemaakt, &$i_errors) {
 
-function insertACL($con, $tabelnr, $value, $element, $log, &$aangemaakt, &$i_errors) {
-
-    $qryi = "INSERT into ca_acl (group_id, user_id, access, table_num, row_id) VALUES (NULL, NULL, 1, $value[$tabelnr], $element) ";
+    $qryi = "INSERT into ca_acl (group_id, user_id, access, table_num, row_id) VALUES ($group, NULL, $access, $table, $element) ";
 
     $qr_ids_i = mysql_query($qryi, $con);
 
     if ($qr_ids_i) {
-        $log->logInfo("ACL succesvol aangemaakt");
+        $log->logInfo("ACL succesvol aangemaakt", $qryi);
         $aangemaakt = $aangemaakt + 1;
     } else {
-        $log->logError("ERROR bij aanmaken ACL");
+        $log->logError("ERROR bij aanmaken ACL", $qryi);
         $i_errors = $i_errors + 1;
     }
     unset($qryi);
