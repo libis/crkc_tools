@@ -19,4 +19,4 @@ require_once(__CA_LIB_DIR__."/core/Db.php");
 require_once(__MY_DIR__."/crkc_tools-staging/shared/log/KLogger.php");
 define("__LOG_DIR__", __MY_DIR__."/crkc_tools-staging/shared/log/");
 echo __LOG_DIR__ ;
-//include __MY_DIR__."/crkc_tools/Classes/MyFunctions_new.php";
+include __MY_DIR__."/crkc_tools/Classes/MyFunctions_new.php";

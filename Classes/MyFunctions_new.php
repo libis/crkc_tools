@@ -103,6 +103,57 @@ class MyFunctions_new {
         }
     }
     
+    function processMove($type) {
+        
+        $move = array();
+        //++++++++++++++++++
+        // STAP 1
+        // lijst (array) maken van voorkomende waarden (waarde is de key in de array - > gevolg: geen dubbels)
+        //++++++++++++++++++
+        $reader = new XMLReader();
+        $reader->open(__MY_DIR__."/cag_tools/data/AmoveThes 2012-09.xml");
+
+        while ($reader->read() && $reader->name !== 'record');
+        //==============================================================================begin van de loop
+        while ($reader->name === 'record' )
+        {
+            $xmlarray = $this->ReadXMLnode($reader);
+
+            foreach ($xmlarray as $key => $child) {
+
+                if (($key) === 'term') {
+                    $term = $child;
+                } 
+                if ($key === 'term.type') {
+                    if (!is_array($child)) {
+                        $term_type[] = $child;
+                    } else {
+                        $term_type = $child;
+                    }
+                }
+            }
+
+            foreach ($term_type as $waarde) {
+                if ($waarde ==='objectnaam' && $waarde === $type) {
+                    $move['objectnaam'][] = $term;
+                } elseif ($waarde === 'materiaal' && $waarde === $type) {
+                    $move['materiaal'][] = $term;
+                } elseif ($waarde === 'techniek' && $waarde === $type) {
+                    $move['techniek'][] = $term;
+                } elseif ($waarde === 'gidsterm') {
+                    $move['gidsterm'][] = $term;
+                }
+            }
+            unset($term);
+            unset($term_type);
+
+            $reader->next('record');
+        }
+        $reader->close();
+        return $move;
+        
+    }
+    
 }
 
 ?>
