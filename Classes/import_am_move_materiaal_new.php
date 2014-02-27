@@ -36,9 +36,6 @@ set_time_limit(0);
 define("__PROG__","move");
 echo __PROG__;
 
-define("__TYPE__", 'objectnaam');
-define ("__GUIDE__", 'gidsterm');
-
 define("__MY_DIR__", $_SERVER['DOCUMENT_ROOT']);
 include(__MY_DIR__."/crkc_tools/Classes/header.php");
 //echo '__MY_DATA__';
@@ -49,8 +46,6 @@ require_once(__CA_MODELS_DIR__.'/ca_lists.php');
 require_once(__CA_MODELS_DIR__.'/ca_list_items.php');
 require_once(__CA_MODELS_DIR__.'/ca_list_items_x_list_items.php');
 require_once(__CA_MODELS_DIR__.'/ca_relationship_types.php');
-
-$t_func = new MyFunctions_new();
 
 if (!file_exists(__MY_DIR__.'/cag_tools/data/AmoveThes 2012-09.xml')) {
 	die("ERROR: you must place the am_move.xml data file in the same directory as this script.\n");
@@ -67,7 +62,7 @@ if (!$pn_nl_locale_id = $t_locale->loadLocaleByCode('nl_BE')) {
 if (!$pn_nl_locale_id) {
 	die("ERROR: You can only import the Dutch-language AAT into an installation configured to support the nl_NL (Dutch) or nl_BE (Flemish Belgium) locale. Add one of these locales to your system and try again.\n");
 }
-$list = 'move_objectnaam';
+$list = 'move_materiaal';
 // Create vocabulary list record (if it doesn't exist already)
 $t_list = new ca_lists();
 if (!$t_list->load(array('list_code' => $list))) {
@@ -111,8 +106,6 @@ $vn_list_item_type_facet = 					$t_list->getItemIDFromList('list_item_types', 'f
 $vn_list_item_type_guide_term = 				$t_list->getItemIDFromList('list_item_types', 'guide_term');
 $vn_list_item_type_hierarchy_name = 				$t_list->getItemIDFromList('list_item_types', 'hierarchy_name');
 
-$vn_type_id_base = $t_list->getItemIDFromList('list_item_types', 'concept');
-
 $vn_list_item_type_object_name = 				$t_list->getItemIDFromList('list_item_types', 'object_name');
 $vn_list_item_type_material =		 			$t_list->getItemIDFromList('list_item_types', 'material');
 $vn_list_item_type_technique = 					$t_list->getItemIDFromList('list_item_types', 'technique');
@@ -145,8 +138,6 @@ $vn_list_item_relation_type_id_related = 		$t_rel_types->getRelationshipTypeID('
 
 // create log file
 $logFile = fopen(__MY_DIR__."/crkc_tools-staging/shared/log/am_move_materiaal.log", 'w') or die("can't open file");
-
-$move = $t_func->processMove(__TYPE__);
 
 // load voc_terms
 $o_xml = new XMLReader();
@@ -321,9 +312,9 @@ while($o_xml->read()) {
 
 
 //if ($vs_termtype === 'materiaal' || $vs_termtype === 'gidsterm') {
-if ($vs_termtype === __TYPE__) {    
+if ($vs_termtype === 'materiaal') {    
 
-                        $vs_message = "\tIMPORTING #".($vn_term_count)."  ".$vs_term. " (". $vs_termtype .")";
+                        $vs_message = "\tIMPORTING #".($vn_term_count)."  ".$vs_term. " (". $va_subject['term_type'] .")";
                         print "\n\n".$vs_message;
                         fwrite($logFile, "\n\n".$vs_message);
                         $b_add_term = 1;
@@ -348,33 +339,21 @@ if ($vs_termtype === __TYPE__) {
                         }
 
                         if($key<1 && $vs_broader_term) {
-                            print "\n\t\t adding broader term  ".$vs_broader_term." if it's the right type";
-                            fwrite($logFile, "\n\t\t adding broader term  ".$vs_broader_term." if it's the right type");
-                            $type = array_search($vs_broader_term, $move[__TYPE__]);
-                            $guide = array_search($vs_broader_term, $move[__GUIDE__]);
-                            if ($type !== false || $guide !== false) {
-                                if ($type !== false) {
-                                    $vn_type_id = $vn_list_item_type_material;
-                                } else {
-                                    $vn_type_id = $vn_list_item_type_guide_term;
+                            print "\n\t\t adding broader term  ".$vs_broader_term;
+                            fwrite($logFile, "\n\t\t adding broader term  ".$vs_broader_term);
+                            if ($t_item = $t_list->addItem('', true, false, null, null, '', '', 4, 1)) {
+                                // add preferred labels
+                                if (!($t_item->addLabel(
+                                        array('name_singular' => $vs_broader_term, 'name_plural' => $vs_broader_term, 'description' => ''),
+                                        $pn_nl_locale_id, null, true
+                                    ))) {
+                                    print "ERROR 1: Could not add Dutch preferred label to AM-MovE broader term ".$vs_broader_term.": ".join("; ", $t_item->getErrors())."\n";
+                                    fwrite($logFile, "ERROR 1: Could not add Dutch preferred label to AM-MovE broader term ".$vs_broader_term.": ".join("; ", $t_item->getErrors())."\n");
                                 }
-                            
-                                if ($t_item = $t_list->addItem($vs_broader_term, true, false, null, $vn_type_id, '', '', 4, 1)) {
-                                    // add preferred labels
-                                    if (!($t_item->addLabel(
-                                            array('name_singular' => $vs_broader_term, 'name_plural' => $vs_broader_term, 'description' => ''),
-                                            $pn_nl_locale_id, null, true
-                                        ))) {
-                                        print "ERROR 1: Could not add Dutch preferred label to AM-MovE broader term ".$vs_broader_term.": ".join("; ", $t_item->getErrors())."\n";
-                                        fwrite($logFile, "ERROR 1: Could not add Dutch preferred label to AM-MovE broader term ".$vs_broader_term.": ".join("; ", $t_item->getErrors())."\n");
-                                    }
-                                    $key =  $t_item->getPrimaryKey();
-                                    $va_unique_terms[$key] = $vs_broader_term;
-                                    $va_term_ids[$vs_broader_term] = $key;
-                                }
+                                $key =  $t_item->getPrimaryKey();
+                                $va_unique_terms[$key] = $vs_broader_term;
+                                $va_term_ids[$vs_broader_term] = $key;
                             }
-                            unset($type);
-                            unset($guide);
                         }
 
                         // USE term to process
@@ -401,7 +380,7 @@ if ($vs_termtype === __TYPE__) {
                                     }
 
                                     if($main_key>1) {
-                                        // exists already, we only need to add the labels (as non-preferred labels)
+                                        // exists already, we only need to add the labels
                                         print "\n\t\t updating use term ".$vs_use_term." by adding labels for term ".$vs_term;
                                         fwrite($logFile, "\n\t\t updating use term ".$vs_use_term." by adding labels for term ".$vs_term);
                                         if(!$t_item->load($main_key)) {
@@ -423,64 +402,48 @@ if ($vs_termtype === __TYPE__) {
                                         }
                                         if (($existing_label = $vs_existing_labels[$vs_term])) {
                                                 // The label already exists.
-                                                print "\n\t\t existing label found for the use term ".$vs_use_term." of ".$vs_term." we can skip this one";
-                                                fwrite($logFile, "\n\t\t existing label found for the use term ".$vs_use_term." of ".$vs_term." we can skip this one");
+                                                print "\n\t\t existing label found for the use term ".$vs_term." we can skip this one";
+                                                fwrite($logFile, "\n\t\t existing label found for the use term ".$vs_term." we can skip this one");
                                         } else {
-                                                print "\n\t\t no label found for the use term ".$vs_use_term." of ".$vs_term." we need to create this label";
-                                                fwrite($logFile, "\n\t\t no label found for the use term ".$vs_use_term." of  ".$vs_term." we need to create this label");
-                                                // add term as non-preferred label for use_term
+                                                print "\n\t\t no label found for the use term ".$vs_term." we need to create this";
+                                                fwrite($logFile, "\n\t\t no label found for the use term ".$vs_term." we need to create this");
                                                 if (!($t_item->addLabel(
                                                         array('name_singular' => $vs_term, 'name_plural' => $vs_term,
                                                         'description' => $va_subject['scope_note']), $pn_nl_locale_id, $vn_list_item_label_type_alt, false
                                                     ))) {
-#### mogelijk nog een probleem lijkt alsof $vs_np_label niet bestaat                                                    
                                                     print "ERROR 2: Could not add Dutch non-preferred label to AM-MovE term
                                                             [".$va_subject['term_number']."] ".$vs_np_label.": ".join("; ", $t_item->getErrors())."\n";
                                                     fwrite($logFile, "ERROR 2: Could not add Dutch non-preferred label to AM-MovE term
                                                             [".$va_subject['term_number']."] ".$vs_np_label.": ".join("; ", $t_item->getErrors())."\n");
                                                 }
                                         }
+                                        break;
                                     } else {
                                         // create the use term, and add the labels for this term
-                                        print "\n\t\t creating use term ".$vs_use_term." and adding labels for term ".$vs_term." if it's the right type";
-                                        fwrite($logFile, "\n\t\t creating use term ".$vs_use_term." and adding labels for term ".$vs_term." if it's the right type");
-                                        $type = array_search($vs_use_term, $move[__TYPE__]);
-                                        $guide = array_search($vs_use_term, $move[__GUIDE__]);
-                                        
-                                        if ($type !== false || $guide !== false) {
-                                            if ($type !== false) {
-                                                $vn_type_id = $vn_list_item_type_material;
-                                            } else {
-                                                $vn_type_id = $vn_list_item_type_guide_term;
+                                        print "\n\t\t creating use term ".$vs_use_term." and adding labels for term ".$vs_term;
+                                        fwrite($logFile, "\n\t\t creating use term ".$vs_use_term." and adding labels for term ".$vs_term);
+                                        if ($t_item = $t_list->addItem('', true, false, null, null, '', '', 4, 1)) {
+                                            // add preferred labels
+                                            if (!($t_item->addLabel(
+                                                    array('name_singular' => $vs_use_term, 'name_plural' => $vs_use_term, 'description' => ''),
+                                                    $pn_nl_locale_id, null, true
+                                                ))) {
+                                                print "ERROR 3: Could not add Dutch preferred label to AM-MovE term ".$vs_use_term.": ".join("; ", $t_item->getErrors())."\n";
+                                                fwrite($logFile, "ERROR 3: Could not add Dutch preferred label to AM-MovE term ".$vs_use_term.": ".join("; ", $t_item->getErrors())."\n");
                                             }
-
-                                            if ($t_item = $t_list->addItem($vs_use_term, true, false, null, $vn_type_id, '', '', 4, 1)) {
-                                                // add use-terms as preferred labels
-                                                if (!($t_item->addLabel(
-                                                        array('name_singular' => $vs_use_term, 'name_plural' => $vs_use_term, 'description' => ''),
-                                                        $pn_nl_locale_id, null, true
-                                                    ))) {
-                                                    print "ERROR 3: Could not add Dutch preferred label to AM-MovE term ".$vs_use_term.": ".join("; ", $t_item->getErrors())."\n";
-                                                    fwrite($logFile, "ERROR 3: Could not add Dutch preferred label to AM-MovE term ".$vs_use_term.": ".join("; ", $t_item->getErrors())."\n");
-                                                }
-                                               //add term as non-preferred label
-                                                if (!($t_item->addLabel(
-                                                        array('name_singular' => $vs_term, 'name_plural' => $vs_term,
-                                                        'description' => $va_subject['scope_note']), $pn_nl_locale_id, $vn_list_item_label_type_alt, false
-                                                    ))) {
-# zelfde opmerking als hoger !!!!! $vs_np_label niet gekend !!!!!!                                                    
-                                                    print "ERROR 4: Could not add Dutch non-preferred label to AM-MovE term
-                                                            [".$va_subject['term_number']."] ".$vs_np_label.": ".join("; ", $t_item->getErrors())."\n";
-                                                    fwrite($logFile, "ERROR 4: Could not add Dutch non-preferred label to AM-MovE term
-                                                            [".$va_subject['term_number']."] ".$vs_np_label.": ".join("; ", $t_item->getErrors())."\n");
-                                                }
-                                                $key =  $t_item->getPrimaryKey();
-                                                $va_unique_terms[$key] = $vs_use_term;
-                                                $va_term_ids[$vs_use_term] = $key;
-                                                //break;
+                                            if (!($t_item->addLabel(
+                                                    array('name_singular' => $vs_term, 'name_plural' => $vs_term,
+                                                    'description' => $va_subject['scope_note']), $pn_nl_locale_id, $vn_list_item_label_type_alt, false
+                                                ))) {
+                                                print "ERROR 4: Could not add Dutch non-preferred label to AM-MovE term
+                                                        [".$va_subject['term_number']."] ".$vs_np_label.": ".join("; ", $t_item->getErrors())."\n";
+                                                fwrite($logFile, "ERROR 4: Could not add Dutch non-preferred label to AM-MovE term
+                                                        [".$va_subject['term_number']."] ".$vs_np_label.": ".join("; ", $t_item->getErrors())."\n");
                                             }
-                                            unset($type);
-                                            unset($guide);
+                                            $key =  $t_item->getPrimaryKey();
+                                            $va_unique_terms[$key] = $vs_use_term;
+                                            $va_term_ids[$vs_use_term] = $key;
+                                            //break;
                                         }
                                     }
                                     // do not need to add this terms
@@ -491,19 +454,19 @@ if ($vs_termtype === __TYPE__) {
 
                         // Check if the current term is already added
                         // + If term is not found, new term is added and its parent id is set as retrived from the above borader term
-                        // + If term is found or any term have alternative label is found same then also adding term is skiped.
+                        // + If term is found or any term have alternative label is found same then also adding term is sciped.
                         // -----------------------------------------------------------------------------------------------------------
                         print "\n\t Processing regular term";
                         fwrite($logFile, "\n\t Processing regular term");
                         if($b_add_term >0) {
                             $vs_pref_key = array_search($vs_term, $va_unique_terms);
                             $vs_existing_labels = array();
-                            
+
                             if($vs_pref_key<1) {
                                 // We need to create the term.
                                 print "\n\t\t creating new term $vs_term";
                                 fwrite($logFile, "\n\t\t creating new term $vs_term");
-                                if ($t_item = $t_list->addItem($vs_term, $pb_is_enabled, false, null, $vn_type_id_base, $va_subject['term_number'], '', 4, 1)) {
+                                if ($t_item = $t_list->addItem($va_subject['term_number'], $pb_is_enabled, false, null, $vn_type_id, $va_subject['term_number'], '', 4, 1)) {
                                     if (!($t_item->addLabel(
                                             array('name_singular' => $vs_term, 'name_plural' => $vs_term, 'description' => $va_subject['scope_note']),
                                             $pn_nl_locale_id, null, true
@@ -524,20 +487,16 @@ if ($vs_termtype === __TYPE__) {
                                     fwrite($logFile, "ERROR: could not load item {".$vs_pref_key."} \n");
                                     break;
                                 }
-                                //$t_item->set('item_value', $va_subject['term_number']);
-                                $t_item->set('item_value', $vs_term);
+                                $t_item->set('item_value', $va_subject['term_number']);
                                 $t_item->set('idno', $va_subject['term_number']);
-                                $t_item->set('type_id', $vn_type_id_base, array('allowSettingOfTypeID' => true)); // this should work, type cannot be set after insert, so we'll do a manual query.
+                                $t_item->set('type_id', $vn_type_id); // this doesn't work, type cannot be set after insert, so we'll do a manual query.
                                 $t_item->set('is_enabled', $pb_is_enabled ? 1 : 0);
                                 $t_item->update();
-                                /* no longer needed???
                                 if($t_item->get('type_id') != $vn_type_id) {
                                     print "\n\t\t updating type_id to ".$vn_type_id." for $vs_term";
                                     $qr = "update ca_list_items set type_id = ".$vn_type_id." where item_id = ".$t_item->getPrimaryKey();
                                     $qr_update_type = $o_db->query($qr);
                                 }
-                                 * 
-                                 */
                                 $pref_labels = $t_item->getPreferredLabels();
                                 while(is_array($pref_labels) && count($pref_labels) == 1) {
                                     $pref_labels = array_pop($pref_labels);
@@ -565,13 +524,13 @@ if ($vs_termtype === __TYPE__) {
                             print "\n\t Processing used_for terms";
                             fwrite($logFile, "\n\t Processing used_for terms");
                             if (is_array($va_subject['used_for'])) {
-# ?????                                
                                 if(!$t_item->load($vs_pref_key)) {
                                     print "ERROR: could not load item {".$vs_pref_key."} \n";
                                     fwrite($logFile, "ERROR: could not load item {".$vs_pref_key."} \n");
                                     break;
                                 }
                                 foreach($va_subject['used_for'] as $vs_used_for_subject) {
+        #en wel in deze if                                                    
                                     if (($existing_label = $vs_existing_labels[$vs_used_for_subject])) {
                                         // The label already exists.
                                         print "\n\t\t existing label found for the used_for term ".$vs_used_for_subject." we can skip this one";
@@ -584,7 +543,6 @@ if ($vs_termtype === __TYPE__) {
                                                 array('name_singular' => $vs_used_for_subject, 'name_plural' => $vs_used_for_subject,
                                                 'description' => $va_subject['scope_note']), $pn_nl_locale_id, $vn_list_item_label_type_alt, false
                                             ))) {
-# $vs_np_label bestaat niet !!!!!                                            
                                             print "ERROR 6: Could not add Dutch non-preferred label to AM-MovE term
                                                     [".$va_subject['term_number']."] ".$vs_np_label.": ".join("; ", $t_item->getErrors())."\n";
                                             fwrite($logFile, "ERROR 6: Could not add Dutch non-preferred label to AM-MovE term
@@ -612,31 +570,20 @@ if ($vs_termtype === __TYPE__) {
                                     } else {
                                         print "\n\t\t narrower term ".$vs_narrower_subject." didn't exist, creating term and adding parent relation";
                                         fwrite($logFile, "\n\t\t narrower term ".$vs_narrower_subject." didn't exist, creating term and adding parent relation");
-                                        $type = array_search($vs_narrower_subject, $move[__TYPE__]);
-                                        $guide = array_search($vs_narrower_subject, $move[__GUIDE__]);
-                                        
-                                        if ($type !== false || $guide !== false) {
-                                            if ($type !== false) {
-                                                $vn_type_id = $vn_list_item_type_material;
-                                            } else {
-                                                $vn_type_id = $vn_list_item_type_guide_term;
+        //xxx
+                                        if ($t_item = $t_list->addItem('', true, false, $vs_pref_key, null, '', '', 4, 1)) {
+                                            // add preferred labels
+                                            if (!($t_item->addLabel(
+                                                    array('name_singular' => $vs_narrower_subject, 'name_plural' => $vs_narrower_subject, 'description' => ''),
+                                                    $pn_nl_locale_id, null, true
+                                                ))) {
+                                                print "ERROR 7: Could not add Dutch preferred label to AM-MovE narrower term ".$vs_use_term.": ".join("; ", $t_item->getErrors())."\n";
+                                                fwrite($logFile, "ERROR 7: Could not add Dutch preferred label to AM-MovE narrower term ".$vs_use_term.": ".join("; ", $t_item->getErrors())."\n");
                                             }
-                                            if ($t_item = $t_list->addItem($vs_narrower_subject, true, false, $vs_pref_key, $vn_type_id, '', '', 4, 1)) {
-                                                // add preferred labels
-                                                if (!($t_item->addLabel(
-                                                        array('name_singular' => $vs_narrower_subject, 'name_plural' => $vs_narrower_subject, 'description' => ''),
-                                                        $pn_nl_locale_id, null, true
-                                                    ))) {
-                                                    print "ERROR 7: Could not add Dutch preferred label to AM-MovE narrower term ".$vs_use_term.": ".join("; ", $t_item->getErrors())."\n";
-                                                    fwrite($logFile, "ERROR 7: Could not add Dutch preferred label to AM-MovE narrower term ".$vs_use_term.": ".join("; ", $t_item->getErrors())."\n");
-                                                }
-                                                $narrower_key =  $t_item->getPrimaryKey();
-                                                $va_unique_terms[$narrower_key] = $vs_narrower_subject;
-                                                $va_term_ids[$vs_narrower_subject] = $narrower_key;
-                                            }
+                                            $narrower_key =  $t_item->getPrimaryKey();
+                                            $va_unique_terms[$narrower_key] = $vs_narrower_subject;
+                                            $va_term_ids[$vs_narrower_subject] = $narrower_key;
                                         }
-                                        unset($type);
-                                        unset($guide);
                                     }
                                 }
                             }
