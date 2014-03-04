@@ -5,9 +5,8 @@ define('__CA_DONT_DO_SEARCH_INDEXING__',true);
 /*
  * Step 1: Initialisation
  */
-
 set_time_limit(36000);
-require_once("/www/libis/vol03/lias_html/ca_crkc/setup.php");
+require_once("/www/libis/web/lias_html/ca_crkc/setup.php");
 
 require_once(__CA_LIB_DIR__.'/core/Db.php');
 require_once(__CA_MODELS_DIR__.'/ca_locales.php');
@@ -31,13 +30,11 @@ print "IMPORTING afbeeldingen\n";
 $o_tab_parserAfbeeldingen = new DelimitedDataParser("\t");
 
 // Read csv; line by line till end of file.
-if (!$o_tab_parserAfbeeldingen->parse('/www/libis/vol03/lias_html/ca_crkc/app/lib/ca/data/afbeeldingen.csv')) {
+if (!$o_tab_parserAfbeeldingen->parse('/www/libis/web/lias_html/crkc_tools/data/afbeeldingen.csv')) {
 	die("Couldn't parse afbeeldingenPov.csv data\n");
 }
 
 print "READING afbeeldingen.csv...\n";
-
-$vn_c2 = 1;
 
 $afbeeldingen = array();
 
@@ -50,10 +47,12 @@ while($o_tab_parserAfbeeldingen->nextRow()) {
 	$label			=	$o_tab_parserAfbeeldingen->getRowValue(1);
 	$pid			=	$o_tab_parserAfbeeldingen->getRowValue(2);
 
+	if(!empty($pid)) {
 	$pid_url = $pid. "_,_http://resolver.lias.be/get_pid?stream&usagetype=THUMBNAIL&pid=" . $pid . "_,_http://resolver.lias.be/get_pid?view&usagetype=VIEW_MAIN,VIEW&pid=". $pid;
-
 	$afbeeldingen[$label] = $pid_url;
-	$vn_c2++;
+	} else {
+	  echo "Problem adding " .$label . " and Pid: " . $pid;
+	}
 }
 
 print "\n Creating afbeelding voor ".$label." \n";
@@ -80,8 +79,8 @@ foreach($afbeeldingen as $label_key => $pid_value)
 		if (trim($pid_value)) {
 				$t_object->addAttribute(array(
 					'locale_id'	=>	$pn_locale_id,
-				'digitoolUrl'	=>	trim($pid_value)
-			), 'digitoolUrl');
+				        'digitoolUrl'	=>	trim($pid_value)
+			                 ), 'digitoolUrl');
 		}
 
 		$t_object->update();
