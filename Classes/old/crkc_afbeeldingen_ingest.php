@@ -14,6 +14,8 @@ require_once(__CA_MODELS_DIR__.'/ca_objects.php');
 
 require_once(__CA_LIB_DIR__.'/core/Parsers/DelimitedDataParser.php');
 
+$AUTH_CURRENT_USER_ID = 'admistrator';
+define("$AUTH_CURRENT_USER_ID", "administrator");
 
 $_ = new Zend_Translate('gettext', __CA_APP_DIR__.'/locale/en_US/messages.mo', 'nl_NL');
 
