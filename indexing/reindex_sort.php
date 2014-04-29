@@ -7,6 +7,6 @@
 
 require_once('indexing_setting.php');
 
-exec("nohup sh reindex_sort.sh > /www/libis/web/lias_html/collectiveaccess/crkc_media/reindex_crkcsandbox_release_sort.txt 2> /www/libis/web/lias_html/collectiveaccess/crkc_media/reindex_crkcsandbox_release_sort.txt.err < /dev/null &");
+exec("nohup sh reindex_sort.sh > ".$media_directory."/reindex_ca_crkc_sort.txt 2> ".$media_directory."/reindex_ca_crkc_sort.txt.err < /dev/null &");
 
 
