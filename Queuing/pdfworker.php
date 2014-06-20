@@ -11,6 +11,9 @@ require_once __DIR__ . '/vendor/autoload.php';
 require_once __DIR__ . '/phpmailer/PHPMailerAutoload.php';
 
 use PhpAmqpLib\Connection\AMQPConnection;
+ini_set('memory_limit','2048M');
+set_time_limit(600000);
+date_default_timezone_set('Europe/Brussels');
 
 $connection = new AMQPConnection($co_rabbit_mq_server, $co_rabbit_mq_port, $co_rabbit_mq_uid, $co_rabbit_mq_pwd, $co_rabbit_mq_vhost);
 
@@ -33,6 +36,7 @@ $callback = function($msg) {
 
     $file_name = date("m_d_y")."_".$microtime;
     $va_content_file = $va_request_directory."/".$file_name.".html";
+    $va_header_file = $va_request_directory."/".$file_name."_header.html";
     $va_pdf_file = $va_request_directory."/".$file_name.".pdf";
 
     $temPath = explode(basename(__DIR__),$va_pdf_file);
@@ -40,17 +44,37 @@ $callback = function($msg) {
 
     $va_pdf_message = json_decode($msg->body);
     $va_pdf_contents = array_key_exists('pdf_contents', $va_pdf_message) ? $va_pdf_message->pdf_contents : '' ;
+    $va_pdf_header = array_key_exists('pdf_header', $va_pdf_message) ? $va_pdf_message->pdf_header : '' ;
 
     if (array_key_exists('pdf_settings', $va_pdf_message))
         $va_pdf_settings = $va_pdf_message->pdf_settings;
 
+    libxml_use_internal_errors(true);
+    $dom = new DOMDocument;
+    $test = $dom->loadHTML($va_pdf_contents);
+    libxml_use_internal_errors(false);
+    $nodes = $dom->getElementsByTagName("div");
+    foreach ($nodes as $node) {
+        if($node->getAttribute('id') === "pageHeader"){
+            $node->parentNode->removeChild($node);
+        }
+    }
+    $va_pdf_contents = $dom->saveHTML();
+
+
+
     file_put_contents($va_content_file, print_r($va_pdf_contents,true));
+
+    file_put_contents($va_header_file, print_r($va_pdf_header,true));
 
     if(file_exists($va_content_file)){
         $va_pdf_orientation = isset($va_pdf_settings->orientation) ? $va_pdf_settings->orientation : "portrait" ;
         $va_pdf_paper_size = isset($va_pdf_settings->page_format) ? $va_pdf_settings->page_format : "A4" ;
 
-        $va_command = $co_pdf_tool_path.'/wkhtmltopdf'.' '
+        $va_command = $co_pdf_tool_path.'/wkhtmltopdf --footer-center "[page] / [toPage]"'.' '
+            .'--margin-top 31mm '
+            .'--header-spacing 10 '
+            .'--header-html '.$va_header_file.' '
             .'-O '.$va_pdf_orientation.' '
             .'-s '.$va_pdf_paper_size.' '
             .$va_content_file.' '
@@ -97,7 +121,7 @@ $callback = function($msg) {
                 echo "Mailer Error: " . $mail->ErrorInfo."\n";
             }
             else
-                echo "Message has been sent to:".$va_pdf_message->user_info->email."\n";
+                echo "Message has been sent to:".$va_pdf_message->user_info->email."\n"."Timestamp: ".date('Y-m-d H:i:s')."\n\n";
         }
     }
     else
