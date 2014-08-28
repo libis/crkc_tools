@@ -44,7 +44,7 @@ while($o_tab_parserAfbeeldingen->nextRow()) {
 	$pid			=	$o_tab_parserAfbeeldingen->getRowValue(2);
 
 	if(!empty($pid)) {
-	$pid_url = $pid. "_,_http://resolver.lias.be/get_pid?stream&usagetype=THUMBNAIL&pid=" . $pid . "_,_http://resolver.lias.be/get_pid?view&usagetype=VIEW_MAIN,VIEW&pid=". $pid;
+	$pid_url = $pid;
 	$afbeeldingen[$label] = $pid_url;
 	} else {
 	  echo "Problem adding " .$label . " and Pid: " . $pid;
