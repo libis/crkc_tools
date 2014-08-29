@@ -6,14 +6,10 @@ define('__CA_DONT_DO_SEARCH_INDEXING__',true);
  * Step 1: Initialisation
  */
 set_time_limit(36000);
-require_once("/www/libis/web/lias_html/ca_crkc/setup.php");
 
-require_once(__CA_LIB_DIR__.'/core/Db.php');
-require_once(__CA_MODELS_DIR__.'/ca_locales.php');
-require_once(__CA_MODELS_DIR__.'/ca_objects.php');
+include('header.php');
 
 require_once(__CA_LIB_DIR__.'/core/Parsers/DelimitedDataParser.php');
-
 
 $_ = new Zend_Translate('gettext', __CA_APP_DIR__.'/locale/en_US/messages.mo', 'nl_NL');
 
@@ -30,7 +26,7 @@ print "IMPORTING afbeeldingen\n";
 $o_tab_parserAfbeeldingen = new DelimitedDataParser("\t");
 
 // Read csv; line by line till end of file.
-if (!$o_tab_parserAfbeeldingen->parse('/www/libis/web/lias_html/crkc_tools/data/afbeeldingen.csv')) {
+if (!$o_tab_parserAfbeeldingen->parse(__MY_DATA__ . 'afbeeldingen.csv')) {
 	die("Couldn't parse afbeeldingenPov.csv data\n");
 }
 
@@ -48,7 +44,7 @@ while($o_tab_parserAfbeeldingen->nextRow()) {
 	$pid			=	$o_tab_parserAfbeeldingen->getRowValue(2);
 
 	if(!empty($pid)) {
-	$pid_url = $pid. "_,_http://resolver.lias.be/get_pid?stream&usagetype=THUMBNAIL&pid=" . $pid . "_,_http://resolver.lias.be/get_pid?view&usagetype=VIEW_MAIN,VIEW&pid=". $pid;
+	$pid_url = $pid;
 	$afbeeldingen[$label] = $pid_url;
 	} else {
 	  echo "Problem adding " .$label . " and Pid: " . $pid;
@@ -60,19 +56,20 @@ print "\n Creating afbeelding voor ".$label." \n";
 	// label en idno moeten nog gematcht worden
 	// kunstvoorwerp_idno loop vervangen door opzoeken van label
 
-$t_object = new ca_objects();
+$t_object = new ca_objects_bis();
 
 foreach($afbeeldingen as $label_key => $pid_value)
 {
-
 	$pattern = '/([a-zA-Z]+\.)(.*)(_)(.*)(_.*)/';
 	preg_match($pattern, $label_key, $matches);
 	$lookup = $matches[1] . $matches[2] . "." . $matches[4];
 
+	$AUTH_CURRENT_USER_ID = 'administrator';
 	$object_ids = $t_object->getObjectIDsByidnoPart($lookup);
-
+	
 	if(!empty($object_ids) && !empty($pid_value))
 	{
+		$AUTH_CURRENT_USER_ID = 'administrator';
 		$t_object->setMode(ACCESS_WRITE);
 
 		$t_object->load($object_ids[0]);
