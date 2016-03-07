@@ -5,7 +5,7 @@
  * Date: 11/06/14
  * Time: 11:59
  */
-require_once __CA_LIB_DIR__.'/vendor/autoload.php';
+require_once(__CA_LIB_DIR__.'/vendor/autoload.php');
 
 use Guzzle\Http\Client;
 use Guzzle\Plugin\Cookie\Cookie;
@@ -43,8 +43,8 @@ class GuzzleRestCookie {
         $this->host = $tools['host'];
         $this->base = $tools['base'];
 
-        //$this->uri = 'http://'.$this->userid.':'.$this->paswoord.'@'.$this->host ;
-        $this->uri = 'http://'.$this->host ;
+        $this->uri = 'http://'.$this->userid.':'.$this->paswoord.'@'.$this->host ;
+        #$this->uri = 'http://'.$this->host ;
 
         $this->header = array(
             'Content-Type'  => 'application/json',
@@ -109,11 +109,21 @@ class GuzzleRestCookie {
         return $data;
     }
 
-    function deleteObject($object_id, $table) {
-
-        $json_update = json_encode($update);
+    function softDeleteObject($object_id, $table) {
 
         $request = $this->Client->delete("/".$this->base."/service.php/item/".$table."/id/".$object_id, $this->header);
+        $response = $request->send();
+        $data = $response->json();
+
+        return $data;
+    }
+
+    function hardDeleteObject($object_id, $table) {
+
+        $update = array('hard' => true, 'delete_related' => true);
+        $json_update = json_encode($update);
+
+        $request = $this->Client->delete("/".$this->base."/service.php/item/".$table."/id/".$object_id .'?pretty=1&include_deleted=1', $this->header, $json_update);
         $response = $request->send();
         $data = $response->json();
 

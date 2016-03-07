@@ -125,7 +125,7 @@ class GuzzleRest {
     function findObject($query, $table) {
 
         $client = new Client($this->uri);
-
+        echo $this->uri.'/'.$this->base.'/service.php/find/'.$table.'?q='.$query.'&pretty=1';
         $request = $client->get('/'.$this->base.'/service.php/find/'.$table.'?q='.$query.'&pretty=1&start=0&rows=100');
         $response = $request->send();
         $data = $response->json();
@@ -169,5 +169,20 @@ class GuzzleRest {
         return $data;
 
     }
+
+    function hardDeleteObject($object_id, $table) {
+
+        $client = new Client($this->uri);
+
+        $update = array('hard' => true, 'delete_related' => true);
+        $json_update = json_encode($update);
+
+        $request = $client->delete("/".$this->base."/service.php/item/".$table."/id/".$object_id .'?pretty=1&include_deleted=1', $this->header, $json_update);
+        $response = $request->send();
+        $data = $response->json();
+
+        return $data;
+    }
+
 
 } 
