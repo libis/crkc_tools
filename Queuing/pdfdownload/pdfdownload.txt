@@ -1,2 +1,0 @@
-This directory contains html and corresponding pdf files.
-
